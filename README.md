@@ -1,4 +1,6 @@
 # BE_Blog_posts
+![](assets/demo_v0.1.gif)
+
 Small Backend project,
 to practice APIs with flask, python and even pythons virtual envs - venv and pipenv.
 On the way, fork the old blog posts FE,
