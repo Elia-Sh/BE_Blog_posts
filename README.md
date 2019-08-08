@@ -4,7 +4,7 @@ to practice APIs with flask, python and even pythons virtual envs - venv and pip
 On the way, fork the old blog posts FE,
 based on Stephen Udemy course,
 to a modern version of `react*` packages,
-+ mongoDB docker
+and temper with mongoDB docker
 
 ## Usage:
 1. clone
