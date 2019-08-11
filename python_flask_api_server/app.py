@@ -1,5 +1,5 @@
 from flask import Flask
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 
 from flask import request
 from flask_pymongo import PyMongo
@@ -7,33 +7,69 @@ from pymongo import errors as PyMongoErrors
 from bson.json_util import dumps, loads
 from datetime import datetime
 
-# TODO working on:
-#   https://www.bogotobogo.com/python/MongoDB_PyMongo/python_MongoDB_RESTAPI_with_Flask.php
+# Roughly inspired by:
+# https://www.bogotobogo.com/python/MongoDB_PyMongo/python_MongoDB_RESTAPI_with_Flask.php
 
 # looking at the FE of the blog project,
-# there are 3 properties title, categories, content
+# there are 3 properties title, categories, content for a post,
 
-app = Flask(__name__, static_folder="static", template_folder="templates")
-# from shell: export FLASK_ENV=development
-# afterwards run: flask run
-# TODO figure out why webpack/other complains about cors -
-# Access to XMLHttpRequest at 'http://localhost:5000/posts?key=None'
-# from origin 'http://localhost:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin'
-# header is present on the requested resource. [http://localhost:3000/]
-CORS(app, support_credentials=False)
+# next: /posts/<pstID>/ -> presents the post
+# next: enable edit for posts,
+# next: multiple uses -> twitter like "blog posts",
+#           /<user name or id>/posts
 
-# based on https://flask-cors.readthedocs.io/en/latest/#using-json-with-cors
-app.config['CORS_HEADERS'] = 'Content-Type'
-# for debug
-# app.config['TESTING'] = True
+app = Flask(__name__)
+CORS(app)
 
 app.config['MONGO_DBNAME'] = 'blogPostsDb'
 app.config['MONGO_URI'] = 'mongodb://localhost:27017/blogPostsDb'
 
 mongo = PyMongo(app)
 
+# initialize posts collection with couple of posts
+@app.before_first_request
+def init_demo_db():
+    # dict of posts to insert into mongo
+    demo_init_posts_list = [
+        dict(title='First post!',
+             categories='cat1 cat2',
+             content='Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut eu vulputate ex. Phasellus aliquam '
+                     'rutrum neque. Nullam vitae purus non nisl semper volutpat. Nam facilisis, dolor id sollicitudin '
+                     'cursus, ipsum mi tempor purus, finibus aliquam tellus diam nec ipsum. Cras eget ex urna. Mquis '
+                     'pretium augue. Donec mi augue, venenatis et malesuada eget, vulputate bibendum nunc. Curabitur '
+                     'sollicitudin sapien sit amet velit iaculis tincidunt. Mauris suscipit tincidunt. Quisque '
+                     'eget sapien fermentum, ornare nibh vel, convallis orci. Cras ac lectus egestas, sagittis sit '
+                     'amet, ullamcorper nulla. ',
+             creationDate='2019-08-10T12:11:15.903774'),
+        dict(title='Another wonderful post',
+             categories='cat1 cat',
+             content='Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec non facilisis tortor. Vestibulum '
+                     'bibendum sodales lacus in imperdiet. Sed feugiat purus sem. Nullam non velit quam. Sed ut in '
+                     'dui commodo tincidunt. Proin mollis quis quam nec dignissim. Proin purus justo, facilisis eget '
+                     'libero ut, porttitor egestas nulla. Etiam varius auctor nulla at rhoncus. Duis tincidunt '
+                     'condimentum lacus rutrum consequat.',
+             creationDate='2019-08-10T12:13:44.774903'),
+    ]
+    existing_posts_list = list(mongo.db.posts.find({}))
+    if len(existing_posts_list) > 0:
+        # there are already posts in DB,
+        # no need to add demo posts..
+        return
+
+    try:
+        insert_result = mongo.db.posts.insert_many(demo_init_posts_list)
+        print('INFO: successfully initialized demo posts DB')
+    except PyMongoErrors.PyMongoError as e:
+        # DB issue, don't return EXCEPTION to client,
+        # there are cases where I want the application to know that the DB had a specific error,
+        # and allow the front end/ logic what ever tp recover/ let the user know,
+        # but in my simple "Blog backend API", I mask the DB error.
+        print('Error: could not run demo setup, inster failed with:\n{}'.format(e))
+
+
 
 @app.route('/posts', methods=['GET', 'POST'])
+@cross_origin()
 def process_posts_request():
     if request.method == 'GET':
         print('This is a GET request')
@@ -56,7 +92,7 @@ def add_post_to_db():
         return issue_string, 500
 
     data_json_dict['creationDate'] = datetime.now().isoformat()
-    print('trying to add: {}'.format(data_json_dict))
+    print('Adding new post:\n{}\n'.format(data_json_dict))
     db_posts = mongo.db.posts
 
     # check if post does not exists in DB -
@@ -65,6 +101,7 @@ def add_post_to_db():
     # Using https://api.mongodb.com/python/current/api/pymongo/results.html#pymongo.results.InsertOneResult
     try:
         insert_result = db_posts.insert_one(data_json_dict)
+        print('Successfully added 1 record')
     except PyMongoErrors.PyMongoError as e:
         # DB issue, don't return EXCEPTION to client,
         # there are cases where I want the application to know that the DB had a specific error,
@@ -99,7 +136,7 @@ def check_json(expected_fields, data):
     for f in expected_fields:
         try:
             data[f]
-        except:
+        except NameError:
             returned_issue = 'missing {}'.format(f)
     if len(data) > len(expected_fields):
         returned_issue = 'Error: Too many fields supplied as input'
