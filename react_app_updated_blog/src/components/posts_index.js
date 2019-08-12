@@ -65,21 +65,21 @@ class PostsIndex extends Component {
 
     render() {
         return (
-            <div className="d-flex flex-column justify-content-between">
-                <div className="row flex-row-reverse">
-                    <div className="col d-flex justify-content-end">
+            <div className="d-flex flex-column justify-content-between mt-3">
+                <div className="d-flex flex-row-reverse">
+                    <div className="col d-flex justify-content-end pr-md-1">
                         <div>
                             <Link to='/posts/new' className="btn btn-primary">
                                 Add a Post
                             </Link>
                         </div>
                     </div>
-                    <div className="col">
+                    <div className="col pl-md-1">
                         <h3>Posts</h3>
                     </div>
                 </div> 
-                <div className="d-flex row">
-                    <ul className="d-flex row" >
+                <div className="">
+                    <ul className="d-flex flex-column" >
                         {this.renderPosts()}
                     </ul>
                 </div>
