@@ -1,5 +1,5 @@
 # BE_Blog_posts
-![](assets/demo_v0.1.gif)
+![](assets/demo_latest.gif)
 
 Small Backend project,
 to practice APIs with flask, python and even pythons virtual envs - venv and pipenv.
